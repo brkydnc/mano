@@ -46,7 +46,7 @@ type Segment = {
     binary: Uint16Array,
 }
 
-type Executable = Segment[];
+export type Program = Segment[];
 type AddressTable = { [key: string]: number };
 
 const createAddressTable = (unit: TranslationUnit): Result<AddressTable, Error> => {
@@ -88,12 +88,12 @@ const createAddressTable = (unit: TranslationUnit): Result<AddressTable, Error> 
     return Ok(table);
 }
 
-const translate = (unit: TranslationUnit): Result<Executable, Error> => {
+const translate = (unit: TranslationUnit): Result<Program, Error> => {
     const result = createAddressTable(unit);
     if (!result.ok) return result;
 
     const addressTable = result.value;
-    const executable: Executable = [];
+    const program: Program = [];
 
     let origin = DEFAULT_ORIGIN;
     let instructions: number[] = [];
@@ -127,7 +127,7 @@ const translate = (unit: TranslationUnit): Result<Executable, Error> => {
             if (statement.name === "ORG") {
                 if (instructions.length > 0) {
                     const binary = new Uint16Array(instructions);
-                    executable.push({ origin, binary });
+                    program.push({ origin, binary });
                 }
 
                 instructions = [];
@@ -141,10 +141,11 @@ const translate = (unit: TranslationUnit): Result<Executable, Error> => {
     // Push the last segment
     if (instructions.length > 0) {
         const binary = new Uint16Array(instructions);
-        executable.push({ origin, binary });
+        program.push({ origin, binary });
     }
 
-    return Ok(executable);
+    return Ok(program);
 }
 
 export default translate;
+export { DEFAULT_ORIGIN }
