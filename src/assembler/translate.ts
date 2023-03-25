@@ -27,6 +27,12 @@ const NonMRI = {
     SZA: 0x7004,
     SZE: 0x7002,
     HLT: 0x7001,
+    INP: 0xF800,
+    OUT: 0xF400,
+    SKI: 0xF200,
+    SKO: 0xF100,
+    ION: 0xF080,
+    IOF: 0xF040,
 }
 
 enum Cause {
