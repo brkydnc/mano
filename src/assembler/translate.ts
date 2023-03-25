@@ -1,4 +1,4 @@
-import { TranslationUnit } from './Parser';
+import { TranslationUnit } from './parse';
 import { Result, Ok, Err } from './result';
 
 const DEFAULT_ORIGIN = 0x0002;
