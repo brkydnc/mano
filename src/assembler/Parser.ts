@@ -1,11 +1,13 @@
 import {Result, Ok, Err} from './result';
 
-type Error = {
-    at: number,
-    cause: Cause,
+const Pattern = {
+    Comment: /\/.*/g,
+    Label: /^[A-Z][0-9A-Z]{0,2}$/,
+    Token: /\S+/g,
+    Blank: /^\s*$/,
+    Hexadecimal: /^[0-9A-F]+$/,
+    Decimal: /^(-|\+)?[0-9]+$/,
 }
-
-type ParseResult<T> = Result<T, Error>;
 
 enum Cause {
     InvalidLabel                = "Invalid label name, expected at least 1 letter, followed by at most 2 alphanumerics",
@@ -23,17 +25,14 @@ enum Cause {
     InvalidIndirectionSymbol    = "Invalid indirection symbol, expected 'I' or none",
 }
 
-const Pattern = {
-    Comment: /\/.*/g,
-    Label: /^[A-Z][0-9A-Z]{0,2}$/,
-    Token: /\S+/g,
-    Blank: /^\s*$/,
-    Hexadecimal: /^[0-9A-F]+$/,
-    Decimal: /^(-|\+)?[0-9]+$/,
+type Error = {
+    at: number,
+    cause: Cause,
 }
 
 type MemoryReferenceInstruction = {
     instruction: true,
+    mri: true,
     op: string,
     address: string,
     indirect: boolean
@@ -42,6 +41,7 @@ type MemoryReferenceInstruction = {
 
 type NonMemoryReferenceInstruction = {
     instruction: true,
+    mri: false
     op: string,
     label?: string,
 }
@@ -80,7 +80,7 @@ const isIndirectionSymbol = (str: string): boolean => str === "I";
 
 const removeComments = (source: string): string => source.replaceAll(Pattern.Comment, "");
 
-const parse = (input: string): ParseResult<TranslationUnit> => {
+const parse = (input: string): Result<TranslationUnit, Error> => {
     const upperCaseInput = input.toUpperCase();
     const assembly = removeComments(upperCaseInput);
     const lines = assembly.split('\n');
@@ -124,12 +124,12 @@ const parse = (input: string): ParseResult<TranslationUnit> => {
             if (operands.length > 2)
                 return Err({ at, cause: Cause.TooManyMRIOperands });
 
-            statements.push({ instruction: true, op, address, indirect, label });
+            statements.push({ instruction: true, mri: true, op, address, indirect, label });
         } else if (isRegisterReferenceInstruction(op) || isIOInstruction(op)) {
             if (operands.length > 0)
                 return Err({ at, cause: Cause.TooManyNonMRIOperands });
 
-            statements.push({ instruction: true, op, label });
+            statements.push({ instruction: true, mri: false, op, label });
         } else if (isDirective(op)) {
             const [numeral] = operands;
 
