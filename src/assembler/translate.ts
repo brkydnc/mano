@@ -2,9 +2,12 @@ import { TranslationUnit } from './Parser';
 import { Result, Ok, Err } from './result';
 
 const DEFAULT_ORIGIN = 0x0002;
+const ADDRESS_LIMIT = 0xFFF;
 
 enum Cause {
     LabelAlreadyDefined,
+    OriginOutOfOrder,
+    AddressLimitExceeded,
 }
 
 type Error = {
@@ -15,29 +18,34 @@ type Error = {
 type TranslationResult = Result<{}, Error>;
 type AddressTable = { [key: string]: number };
 
-enum Cause {
-
+type Segment = {
+    origin: number,
+    instructions: Uint16Array,
 }
-
 
 const createAddressTable = (unit: TranslationUnit): Result<AddressTable, Error> => {
     const table = {};
     let addressCounter = DEFAULT_ORIGIN;
 
     for (const statement of unit) {
-        if (statement.instruction) {
-            addressCounter += 1;
-            continue;
-        }
+        if (ADDRESS_LIMIT < addressCounter) return Err({
+            value: `ADDRESS_LIMIT (${ADDRESS_LIMIT}) < CURRENT ADDR: ${addressCounter}`,
+            cause: Cause.AddressLimitExceeded,
+        });
 
-        if (statement.name == "END") {
-            break;
-        }
+        if (!statement.instruction) {
+            if (statement.name == "END") {
+                break;
+            } else if (statement.name == "ORG") {
+                if (statement.numeral < addressCounter) return Err({
+                    value: `ORG: ${statement.numeral} < CURRENT ADDR: ${addressCounter}`,
+                    cause: Cause.OriginOutOfOrder,
+                });
 
-        if (statement.name == "ORG") {
-            addressCounter = statement.numeral;
-            continue;
-        };
+                addressCounter = statement.numeral;
+                continue;
+            }
+        }
 
         if (statement.label) {
             if (table.hasOwnProperty(statement.label)) return Err({
@@ -55,9 +63,12 @@ const createAddressTable = (unit: TranslationUnit): Result<AddressTable, Error> 
 }
 
 const translate = (unit: TranslationUnit) => {
-
     let addressCounter = DEFAULT_ORIGIN;
-    console.log(createAddressTable(unit));
+    const result = createAddressTable(unit);
+    if (!result.ok) return result;
+
+    const addressTable = result.value;
+    console.log(addressTable);
 }
 
 export default translate;
