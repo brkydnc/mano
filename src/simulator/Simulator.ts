@@ -2,7 +2,31 @@ import { Program, DEFAULT_ORIGIN, MRI, NonMRI } from '../assembler//translate';
 import RegisterFile from './RegisterFile';
 import Flags from './Flags';
 
-const MEMORY_SIZE = 4096;
+export const MEMORY_SIZE = 4096;
+
+type SimulatorState = {
+    memory: number[],
+    registers: {
+        data: number;
+        address: number;
+        accumulator: number;
+        instruction: number;
+        program: number;
+        temporary: number;
+        input: number;
+        output: number;
+        time: number;
+    },
+    flags: {
+        indirection: boolean;
+        stop: boolean;
+        overflow: boolean;
+        interrupt: boolean;
+        interruptEnable: boolean;
+        input: boolean;
+        output: boolean;
+    },
+}
 
 export default class Simulator {
     private memory: Uint16Array;
@@ -16,11 +40,37 @@ export default class Simulator {
         this.registers.time = 0;
     }
 
+    public state(): SimulatorState {
+        return {
+            memory: Array.from(this.memory),
+            registers: {
+                data: this.registers.data,
+                address: this.registers.address,
+                accumulator: this.registers.accumulator,
+                instruction: this.registers.instruction,
+                program: this.registers.program,
+                temporary: this.registers.temporary,
+                input: this.registers.input,
+                output: this.registers.output,
+                time: this.registers.time,
+            },
+            flags: {
+                indirection: this.flags.indirection,
+                stop: this.flags.stop,
+                overflow: this.flags.overflow,
+                interrupt: this.flags.interrupt,
+                interruptEnable: this.flags.interruptEnable,
+                input: this.flags.input,
+                output: this.flags.output,
+            },
+        }
+    }
+
     private load(program: Program) {
         const firstSegment = program[0];
         if (!firstSegment) return;
 
-        this.memory = new Uint16Array(MEMORY_SIZE);
+        this.memory.fill(0);
         this.registers = new RegisterFile(firstSegment.origin);
         this.flags = new Flags();
 
@@ -29,10 +79,18 @@ export default class Simulator {
         }
     }
 
-    private step() {
+    public microStep() {
         const steps = [this.t0, this.t1, this.t2, this.t3, this.t4, this.t5, this.t6];
         const step = steps[this.registers.time] as (() => void);
-        step();
+        step.call(this);
+    }
+
+    public execute() {
+
+    }
+
+    public macroStep() {
+        while (this.registers.time > 0) this.microStep();
     }
 
     private t0() {

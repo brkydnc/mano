@@ -1,9 +1,34 @@
+* {
+    font-family: monospace;
+    color: white;
+}
+
+main {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #292929;
+}
+
+fieldset {
+    margin: 0;
+    padding: 0;
+}
+
+legend {
+    font-weight: bold;
+    margin: 0 0 0 20px;
+    padding: 0;
+}
+
 .container {
-    height: 100vh;
+    height: 800px;
+    width: 900px;
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
     grid-template-rows: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
-    gap: 0px 0px;
+    gap: 10px 10px;
     grid-auto-flow: row;
     grid-template-areas:
     "editor editor editor editor debug debug debug debug memory memory memory memory"
@@ -18,47 +43,120 @@
     "output output output output output output input input input input input input";
 }
 
-.editor {
-    grid-area: editor;
-    background-color: red;
+.container > * {
+    background: #303030;
+    border: 1px solid #161616;
+    overflow: hidden;
 }
 
-.memory {
-    grid-area: memory;
-    background-color: green;
-}
-
-.debug {
-    grid-area: debug;
-    background-color: blue;
+.micro input, .macro input, .execute input {
+    height: 100%;
+    width: 100%;
+    border: none;
+    background: none;
+    outline: none;
+    cursor: pointer;
 }
 
 .registers {
+    display: grid;
+    align-items: center;
     grid-area: registers;
-    background-color: black;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr 1fr;
+    gap: 0px 0px;
+    grid-auto-flow: row;
+    grid-template-areas:
+        "dr ar ac ir"
+        "pc tr inpr outr"
+        "t i s e"
+        "r ien fgi fgo";
 }
 
-.execute {
-    grid-area: execute;
-    background-color: yellow;
+.registers > * {
+    justify-items: center;
+    align-items: center;
 }
 
-.micro {
-    grid-area: micro;
-    background-color: pink;
+.register {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
-.macro {
-    grid-area: macro;
-    background-color: magenta;
+.register > strong {
+    width: 50px;
+    text-align: center;
 }
 
-.output {
-    grid-area: output;
-    background-color: brown;
+.register > span {
+    width: 50px;
+    text-align: center;
+    box-sizing: border-box;
+    background-color: #292929;
+    border: 1px solid #161616;
 }
 
-.input {
-    grid-area: input;
-    background-color: cyan;
+.memory-cell {
+    width: 50%;
+    display: flex;
+    justify-content: space-evenly;
+    text-align: center;
+    font-size: 1.2rem;
 }
+
+.memory-cell > * { 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+}
+
+.memory-cell:nth-child(even) { 
+    background-color: #292929;
+    border-top: 1px solid #161616;
+    border-bottom: 1px solid #161616;
+}
+
+.editor > textarea {
+    width: 100%;
+    height: 100%;
+    padding: 0 .8rem 0 .8rem;
+    font-size: 1.3rem;
+    word-wrap: break-word;
+    box-sizing: border-box;
+
+    display:block;
+    overflow: hidden;
+    resize: none;
+    background: none;
+    border: none;
+    outline: none;
+}
+
+.editor { grid-area: editor; }
+.memory { grid-area: memory; }
+.debug { grid-area: debug; }
+.micro { grid-area: micro; }
+.macro { grid-area: macro; }
+.execute { grid-area: execute; }
+.output { grid-area: output; }
+.input { grid-area: input; }
+
+.dr { grid-area: dr; }
+.ar { grid-area: ar; }
+.ac { grid-area: ac; }
+.ir { grid-area: ir; }
+.pc { grid-area: pc; }
+.tr { grid-area: tr; }
+.inpr { grid-area: inpr; }
+.outr { grid-area: outr; }
+.t { grid-area: t; }
+.i { grid-area: i; }
+.s { grid-area: s; }
+.e { grid-area: e; }
+.r { grid-area: r; }
+.ien { grid-area: ien; }
+.fgi { grid-area: fgi; }
+.fgo { grid-area: fgo; }
