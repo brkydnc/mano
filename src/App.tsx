@@ -1,5 +1,5 @@
 import { useState, MouseEvent } from 'react';
-import Simulator, { MEMORY_SIZE } from './simulator/Simulator'
+import Simulator, { MEMORY_SIZE, hex } from './simulator/Simulator'
 import { FixedSizeList as List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import './App.css';
@@ -124,8 +124,6 @@ function App() {
     </main>
     );
 }
-
-const hex = (n: number): string => '0x' + n.toString(16).padStart(4, '0');
 
 type RegisterProps<T> = {
     name: string,
