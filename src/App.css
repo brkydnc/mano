@@ -1,0 +1,64 @@
+.container {
+    height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+    gap: 0px 0px;
+    grid-auto-flow: row;
+    grid-template-areas:
+    "editor editor editor editor debug debug debug debug memory memory memory memory"
+    "editor editor editor editor debug debug debug debug memory memory memory memory"
+    "editor editor editor editor debug debug debug debug memory memory memory memory"
+    "editor editor editor editor registers registers registers registers memory memory memory memory"
+    "editor editor editor editor registers registers registers registers memory memory memory memory"
+    "editor editor editor editor registers registers registers registers memory memory memory memory"
+    "editor editor editor editor micro micro macro macro memory memory memory memory"
+    "editor editor editor editor execute execute execute execute memory memory memory memory"
+    "output output output output output output input input input input input input"
+    "output output output output output output input input input input input input";
+}
+
+.editor {
+    grid-area: editor;
+    background-color: red;
+}
+
+.memory {
+    grid-area: memory;
+    background-color: green;
+}
+
+.debug {
+    grid-area: debug;
+    background-color: blue;
+}
+
+.registers {
+    grid-area: registers;
+    background-color: black;
+}
+
+.execute {
+    grid-area: execute;
+    background-color: yellow;
+}
+
+.micro {
+    grid-area: micro;
+    background-color: pink;
+}
+
+.macro {
+    grid-area: macro;
+    background-color: magenta;
+}
+
+.output {
+    grid-area: output;
+    background-color: brown;
+}
+
+.input {
+    grid-area: input;
+    background-color: cyan;
+}
