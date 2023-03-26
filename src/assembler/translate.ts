@@ -154,4 +154,4 @@ const translate = (unit: TranslationUnit): Result<Program, Error> => {
 }
 
 export default translate;
-export { DEFAULT_ORIGIN }
+export { DEFAULT_ORIGIN, MRI, NonMRI }

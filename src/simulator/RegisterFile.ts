@@ -7,6 +7,7 @@ export default class RegisterFile {
     private _temporary: number;
     private _input: number;
     private _output: number;
+    private _time: number;
 
     constructor(program: number) {
         this._program = program;
@@ -17,11 +18,12 @@ export default class RegisterFile {
         this._temporary = 0;
         this._input = 0;
         this._output = 0;
+        this._time = 0;
     }
 
     get data() { return this._data }
     set data(data: number) {
-        this._data = data;
+        this._data = data & 0xFFFF;
     }
 
     get address() { return this._address }
@@ -31,12 +33,12 @@ export default class RegisterFile {
 
     get accumulator() { return this._accumulator }
     set accumulator(accumulator: number) {
-        this._accumulator = accumulator;
+        this._accumulator = accumulator & 0xFFFF;
     }
 
     get instruction() { return this._instruction }
     set instruction(instruction: number) {
-        this._instruction = instruction;
+        this._instruction = instruction & 0xFFFF;
     }
 
     get program() { return this._program }
@@ -46,7 +48,7 @@ export default class RegisterFile {
 
     get temporary() { return this._temporary }
     set temporary(temporary: number) {
-        this._temporary = temporary;
+        this._temporary = temporary & 0xFFFF;
     }
 
     get input() { return this._input }
@@ -58,4 +60,7 @@ export default class RegisterFile {
     set output(output: number) {
         this._output = output & 0xFF;
     }
+
+    get time() { return this._time }
+    set time(time: number) { this._time = time; }
 }
