@@ -49,13 +49,23 @@ legend {
     overflow: hidden;
 }
 
-.micro input, .macro input, .execute input {
+button {
     height: 100%;
     width: 100%;
     border: none;
     background: none;
     outline: none;
     cursor: pointer;
+    font-weight: bold;
+}
+
+button:hover {
+    background: #292929;
+}
+
+button:disabled {
+    cursor: not-allowed;
+    color: #999999
 }
 
 .registers {

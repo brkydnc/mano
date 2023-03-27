@@ -2,6 +2,8 @@ import { useState, MouseEvent } from 'react';
 import Simulator, { MEMORY_SIZE, hex } from './simulator/Simulator'
 import { FixedSizeList as List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
+import parse from './assembler/parse';
+import translate from './assembler/translate';
 import './App.css';
 
 const simulator = new Simulator();
@@ -9,20 +11,17 @@ const simulator = new Simulator();
 function App() {
     const [simulatorState, setSimulatorState] = useState(simulator.state());
     const [debugLogs, setDebugLogs] = useState([]);
+    const [sourceCode, setSourceCode] = useState("");
+    const [executeReady, setExecuteReady] = useState(false);
 
-    const handleMicroStep = (e: any) => {
-        simulator.microStep()
+    const handleStep = (step: () => void) => () => {
+        step.call(simulator);
         const state = simulator.state();
         setSimulatorState(state);
+        setExecuteReady(simulator.isRunning());
     }
 
-    const handleMacroStep = (e: any) => {
-        simulator.macroStep()
-        const state = simulator.state();
-        setSimulatorState(state);
-    }
-
-    const handleTabPress = (e: any) => {
+    const handleEditorKeyDown = (e: any) => {
         if (e.key == 'Tab') {
             e.preventDefault();
             const start = e.target.selectionStart;
@@ -30,7 +29,26 @@ function App() {
             e.target.value = e.target.value.substring(0, start) +
                 "    " + e.target.value.substring(end);
             e.target.selectionStart = e.target.selectionEnd = start + 4;
-        } 
+        } else if (e.key == 'Enter' && e.ctrlKey) {
+            const parseResult = parse(sourceCode);
+            if (!parseResult.ok) {
+                console.log(parseResult.error);
+                setExecuteReady(false);
+                return;
+            }
+
+            const translateResult = translate(parseResult.value);
+            if (!translateResult.ok) {
+                console.log(translateResult.error);
+                setExecuteReady(false);
+                return;
+            }
+                
+            const program = translateResult.value;
+            simulator.load(program);
+            setExecuteReady(simulator.isRunning());
+            setSimulatorState(simulator.state());
+        }
     }
 
     return (
@@ -38,7 +56,12 @@ function App() {
         <div className="container">
             <fieldset className="editor">
                 <legend>EDITOR</legend>
-                <textarea onKeyDown={handleTabPress} spellCheck={false}></textarea>
+                <textarea
+                    onKeyDown={handleEditorKeyDown}
+                    onChange={(e: any) => setSourceCode(e.target.value)}
+                    spellCheck={false}
+                    >
+                </textarea>
             </fieldset>
 
             <fieldset className="memory">
@@ -103,15 +126,34 @@ function App() {
             </fieldset>
 
             <div className="micro">
-                <input type="button" value="microstep" onClick={handleMicroStep} />
+                <button
+                    disabled={!executeReady}
+                    type="button"
+                    value="MICROSTEP"
+                    onClick={handleStep(simulator.microStep)}
+                    >
+                    MICROSTEP
+                </button>
             </div>
 
             <div className="macro">
-                <input type="button" value="macrostep" onClick={handleMacroStep} />
+                <button
+                    disabled={!executeReady}
+                    type="button"
+                    onClick={handleStep(simulator.macroStep)}
+                    >
+                    MACROSTEP
+                </button>
             </div>
 
             <div className="execute">
-                <input type="button" value="execute" />
+                <button
+                    disabled={!executeReady}
+                    onClick={handleStep(simulator.execute)}
+                    type="button"
+                    >
+                    EXECUTE
+                </button>
             </div>
 
             <fieldset className="output">
