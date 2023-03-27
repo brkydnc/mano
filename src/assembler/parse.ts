@@ -10,38 +10,45 @@ const Pattern = {
     Decimal: /^(-|\+)?[0-9]+$/,
 }
 
-type MemoryReferenceInstruction = {
-    instruction: true,
-    mri: true,
-    op: string,
+export enum Operation {
+    MRI,
+    NonMRI,
+    END,
+    ORG,
+    DEC,
+    HEX,
+}
+
+export type MemoryReferenceInstruction = {
+    operation: Operation.MRI,
+    instruction: string,
     address: string,
     indirect: boolean
-    label?: string,
 }
 
-type NonMemoryReferenceInstruction = {
-    instruction: true,
-    mri: false
-    op: string,
-    label?: string,
+export type NonMemoryReferenceInstruction = {
+    operation: Operation.NonMRI,
+    instruction: string,
 }
-
-type Directive = {
-    instruction: false,
-    name: "END",
-} | {
-    instruction: false,
-    name: "ORG",
-    numeral: number,
-} | {
-    instruction: false,
-    name: "DEC" | "HEX",
-    numeral: number,
-    label?: string,
-} 
 
 type Instruction = MemoryReferenceInstruction | NonMemoryReferenceInstruction;
-type Statement =  Instruction | Directive;
+
+type Directive = {
+    operation: Operation.END,
+} | {
+    operation: Operation.ORG,
+    decimal: number,
+} | {
+    operation: Operation.HEX | Operation.DEC,
+    numeral: number,
+}
+
+type Statement = {
+    line: number,
+    label?: string,
+    content: Instruction | Directive,
+}
+
 export type TranslationUnit = Statement[];
 
 const DIR = ["ORG", "END", "DEC", "HEX"];
@@ -70,7 +77,7 @@ const parse = (input: string): Result<TranslationUnit, Error> => {
         // Skip the line if its blank (only whitespace).
         if (line.match(Pattern.Blank)) continue;
 
-        let label, content = line;
+        let label: string, content = line;
         const Err = ErrAtLine(index + 1);
 
         // Check if the line contains a comma, that means we have a label.
@@ -80,8 +87,12 @@ const parse = (input: string): Result<TranslationUnit, Error> => {
         if (-1 < commaIndex) {
             content = line.slice(commaIndex + 1);
             label = line.slice(0, commaIndex).trim();
+
             if (!isLabel(label)) return Err(Cause.InvalidLabel, label);
         }
+
+        const pushStatement = (content: Instruction | Directive) =>
+            statements.push({ line: index + 1, label, content });
 
         let tokens = content.match(Pattern.Token);
 
@@ -89,11 +100,13 @@ const parse = (input: string): Result<TranslationUnit, Error> => {
         if (!tokens) return Err(Cause.EmptyContent);
 
         const [op, ...operands] = tokens;
+        const instruction = op;
 
         // Determine the type of the op token.
         if (isMemoryReferenceInstruction(op)) {
             const [address, indirection, ...rest] = operands;
             const indirect = Boolean(indirection);
+            const operation = Operation.MRI;
 
             if (!address) return Err(Cause.NoAddress);
             if (!isLabel(address)) return Err(Cause.InvalidAddress, address);
@@ -101,11 +114,10 @@ const parse = (input: string): Result<TranslationUnit, Error> => {
             if (indirection && !isIndirectionSymbol(indirection)) 
                 return Err(Cause.InvalidIndirectionSymbol, indirection);
 
-            statements.push({ instruction: true, mri: true, op, address, indirect, label });
+            pushStatement({ operation, instruction, address, indirect });
         } else if (isRegisterReferenceInstruction(op) || isIOInstruction(op)) {
             if (operands.length > 0) return Err(Cause.TooManyNonMRIOperands, operands);
-
-            statements.push({ instruction: true, mri: false, op, label });
+            pushStatement({ operation: Operation.NonMRI, instruction });
         } else if (isDirective(op)) {
             const [numeral, ...rest] = operands;
             if (rest.length > 0) return Err(Cause.TooManyMRIOperands, rest);
@@ -114,44 +126,27 @@ const parse = (input: string): Result<TranslationUnit, Error> => {
                 const decimal = parseInt(numeral, 10);
                 const hexadecimal = parseInt(numeral, 16);
 
-                if (op === "ORG") {
-                    if (!isDecimal(numeral)) return Err(Cause.InvalidDecimal, numeral);
-
-                    statements.push({
-                        instruction: false,
-                        name: "ORG",
-                        numeral: decimal
-                    });
-                } else if (op === "HEX") {
-                    if (!isHexadecimal(numeral)) return Err(Cause.InvalidHexadecimal, numeral);
-
-                    statements.push({
-                        instruction: false,
-                        name: "HEX",
-                        numeral: hexadecimal,
-                        label
-                    });
-                } else if (op === "DEC") {
-                    if (!isDecimal(numeral)) return Err(Cause.InvalidDecimal, numeral);
-
-                    statements.push({
-                        instruction: false,
-                        name: "DEC",
-                        numeral: decimal,
-                        label
-                    });
-                } else {
-                    return Err(Cause.UnexpectedOperand, numeral);
+                switch (op) {
+                    case "ORG":
+                        if (!isDecimal(numeral)) return Err(Cause.InvalidDecimal, numeral);
+                        pushStatement({ operation: Operation.ORG, decimal });
+                        break;
+                    case "HEX":
+                        if (!isHexadecimal(numeral)) return Err(Cause.InvalidHexadecimal, numeral);
+                        pushStatement({ operation: Operation.HEX, numeral: hexadecimal });
+                        break;
+                    break;
+                    case "DEC":
+                        if (!isDecimal(numeral)) return Err(Cause.InvalidDecimal, numeral);
+                        pushStatement({ operation: Operation.DEC, numeral: decimal });
+                    break;
+                    default:
+                        return Err(Cause.UnexpectedOperand, numeral);
                 }
             } else {
                 if (op !== "END") return Err(Cause.NoNumeral);
-
-                statements.push({
-                    instruction: false,
-                    name: "END",
-                });
+                pushStatement({ operation: Operation.END });
             }
-
         } else {
             return Err(Cause.UnrecognizedOperation, op);
         }

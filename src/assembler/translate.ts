@@ -1,11 +1,11 @@
-import { TranslationUnit } from './parse';
+import { TranslationUnit, Operation, MemoryReferenceInstruction, NonMemoryReferenceInstruction } from './parse';
 import { Result, Ok } from './result';
 import { Error, Cause, ErrAtLine } from './error';
 
 const DEFAULT_ORIGIN = 0x0002;
-const ADDRESS_LIMIT = 0xFFF;
+export const ADDRESS_LIMIT = 0xFFF;
 
-const MRI = {
+export const MRI = {
     AND: 0x0000,
     ADD: 0x1000,
     LDA: 0x2000,
@@ -15,7 +15,7 @@ const MRI = {
     ISZ: 0x6000,
 }
 
-const NonMRI = {
+export const NonMRI = {
     CLA: 0x7800,
     CLE: 0x7400,
     CMA: 0x7200,
@@ -36,34 +36,37 @@ const NonMRI = {
     IOF: 0xF040,
 }
 
+type AddressTable = { [key: string]: number };
+
 type Segment = {
     origin: number,
     binary: Uint16Array,
 }
 
 export type Program = Segment[];
-type AddressTable = { [key: string]: number };
 
 const createAddressTable = (unit: TranslationUnit): Result<AddressTable, Error> => {
-    const table = {};
     let addressCounter = DEFAULT_ORIGIN;
+    const table = {};
 
-    for (const [index, statement] of unit.entries()) {
-        const Err = ErrAtLine(index + 1);
+    firstPass: for (const statement of unit) {
+        const Err = ErrAtLine(statement.line);
 
         if (ADDRESS_LIMIT < addressCounter)
             return Err(Cause.AddressLimitExceeded, addressCounter);
 
-        if (!statement.instruction) {
-            if (statement.name === "END") {
+        switch (statement.content.operation) {
+            case Operation.ORG:
+                if (statement.content.decimal < addressCounter)
+                    return Err(Cause.OriginOutOfOrder, statement.content.decimal);
+                addressCounter = statement.content.decimal;
                 break;
-            } else if (statement.name === "ORG") {
-                if (statement.numeral < addressCounter)
-                    return Err(Cause.OriginOutOfOrder, statement.numeral);
 
-                addressCounter = statement.numeral;
-                continue;
-            }
+            case Operation.END:
+                break firstPass;
+
+            default:
+                break;
         }
 
         if (statement.label) {
@@ -79,6 +82,22 @@ const createAddressTable = (unit: TranslationUnit): Result<AddressTable, Error> 
     return Ok(table);
 }
 
+const NonMRIBinary = (content: NonMemoryReferenceInstruction): number => {
+    return NonMRI[content.instruction as keyof typeof NonMRI];
+}
+
+const MRIBinary = (content: MemoryReferenceInstruction, table: AddressTable): number => {
+    const name = content.instruction as keyof typeof MRI;
+    const address = table[content.address] as number;
+    const indirection = content.indirect ? 1 : 0;
+
+    let instruction = MRI[name];
+    instruction |= address;
+    instruction |= indirection << 15;
+
+    return instruction;
+}
+
 const translate = (unit: TranslationUnit): Result<Program, Error> => {
     const result = createAddressTable(unit);
     if (!result.ok) return result;
@@ -88,55 +107,44 @@ const translate = (unit: TranslationUnit): Result<Program, Error> => {
 
     let origin = DEFAULT_ORIGIN;
     let instructions: number[] = [];
-     
-    for (const [index, statement] of unit.entries()) {
-        const Err = ErrAtLine(index + 1);
 
-        if (statement.instruction) {
-            if (statement.mri) {
-                if (!addressTable.hasOwnProperty(statement.address))
-                    return Err(Cause.UnrecognizedAddress, statement.address);
+    translation: for (const statement of unit) {
+        const Err = ErrAtLine(statement.line);
 
-                const op = statement.op as keyof typeof MRI;
-                const address = addressTable[statement.address] as number;
-                const i = statement.indirect ? 1 : 0;
+        switch (statement.content.operation) {
+            case Operation.MRI:
+                if (!addressTable.hasOwnProperty(statement.content.address))
+                    return Err(Cause.UnrecognizedAddress, statement.content.address);
 
-                let instruction = MRI[op];
-                instruction |= address;
-                instruction |= i << 15;
+                instructions.push(MRIBinary(statement.content, addressTable));
+                break;
 
-                instructions.push(instruction);
-            } else {
-                const op = statement.op as keyof typeof NonMRI;
-                const instruction = NonMRI[op];
-                instructions.push(instruction);
-            }
-        } else {
-            // Just stop the translation process.
-            if (statement.name === "END") break;
+            case Operation.NonMRI:
+                instructions.push(NonMRIBinary(statement.content));
+                break;
 
-            if (statement.name === "ORG") {
-                if (instructions.length > 0) {
-                    const binary = new Uint16Array(instructions);
-                    program.push({ origin, binary });
-                }
+            case Operation.ORG:
+                if (instructions.length > 0)
+                    program.push({ origin, binary: new Uint16Array(instructions) });
 
                 instructions = [];
-                origin = statement.numeral;
-            } else {
-                instructions.push(statement.numeral);
-            }
+                origin = statement.content.decimal;
+                break;
+
+            case Operation.END:
+                break translation;
+
+            default:
+                instructions.push(statement.content.numeral);
         }
     }
 
     // Push the last segment
-    if (instructions.length > 0) {
-        const binary = new Uint16Array(instructions);
-        program.push({ origin, binary });
-    }
+    if (instructions.length > 0)
+        program.push({ origin, binary: new Uint16Array(instructions) });
+
 
     return Ok(program);
 }
 
 export default translate;
-export { DEFAULT_ORIGIN, MRI, NonMRI }
