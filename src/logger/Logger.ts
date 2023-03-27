@@ -1,3 +1,5 @@
+import { Error } from '../assembler/error';
+
 export enum LogKind {
     Step,
     Context,
@@ -36,22 +38,26 @@ export default class Logger {
     }
 
     public context(title: string, time: number) {
-        this._logs.push({ kind: LogKind.Context, title, time});
-    }
+        this._logs.push({ kind: LogKind.Context, title, time }); }
 
     public step(step: string) {
         this._logs.push({ kind: LogKind.Step, step });
     }
 
     public warning(warning: string) {
-        this._logs.push({ kind: LogKind.Warning, warning});
+        this._logs.push({ kind: LogKind.Warning, warning });
     }
 
-    public error(error: string) {
-        this._logs.push({ kind: LogKind.Error, error});
+    public error(error: Error) {
+        const l = error.line;
+        const c = error.cause;
+        const v = error.value ? `"${error.value.toString()}" ` : ``;
+        const message = `(at line ${l}) ${v}${c}`;
+
+        this._logs.push({ kind: LogKind.Error, error: message });
     }
 
     public info(info: string) {
-        this._logs.push({ kind: LogKind.Info, info});
+        this._logs.push({ kind: LogKind.Info, info });
     }
 }

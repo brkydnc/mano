@@ -81,7 +81,7 @@ export default class Simulator {
 
         const firstSegment = program[0];
         if (!firstSegment){
-            this.logger.error("Simulator can't load empty program");
+            this.logger.warning("Simulator can't load empty program");
             return;
         }
 

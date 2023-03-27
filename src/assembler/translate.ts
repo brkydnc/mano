@@ -1,5 +1,6 @@
 import { TranslationUnit } from './parse';
-import { Result, Ok, Err } from './result';
+import { Result, Ok } from './result';
+import { Error, Cause, ErrAtLine } from './error';
 
 const DEFAULT_ORIGIN = 0x0002;
 const ADDRESS_LIMIT = 0xFFF;
@@ -35,18 +36,6 @@ const NonMRI = {
     IOF: 0xF040,
 }
 
-enum Cause {
-    LabelAlreadyDefined,
-    OriginOutOfOrder,
-    AddressLimitExceeded,
-    UnrecognizedAddress,
-}
-
-type Error = {
-    value: any,
-    cause: Cause,
-}
-
 type Segment = {
     origin: number,
     binary: Uint16Array,
@@ -59,20 +48,18 @@ const createAddressTable = (unit: TranslationUnit): Result<AddressTable, Error> 
     const table = {};
     let addressCounter = DEFAULT_ORIGIN;
 
-    for (const statement of unit) {
-        if (ADDRESS_LIMIT < addressCounter) return Err({
-            value: `ADDRESS_LIMIT (${ADDRESS_LIMIT}) < CURRENT ADDR: ${addressCounter}`,
-            cause: Cause.AddressLimitExceeded,
-        });
+    for (const [index, statement] of unit.entries()) {
+        const Err = ErrAtLine(index + 1);
+
+        if (ADDRESS_LIMIT < addressCounter)
+            return Err(Cause.AddressLimitExceeded, addressCounter);
 
         if (!statement.instruction) {
             if (statement.name === "END") {
                 break;
             } else if (statement.name === "ORG") {
-                if (statement.numeral < addressCounter) return Err({
-                    value: `ORG: ${statement.numeral} < CURRENT ADDR: ${addressCounter}`,
-                    cause: Cause.OriginOutOfOrder,
-                });
+                if (statement.numeral < addressCounter)
+                    return Err(Cause.OriginOutOfOrder, statement.numeral);
 
                 addressCounter = statement.numeral;
                 continue;
@@ -80,10 +67,8 @@ const createAddressTable = (unit: TranslationUnit): Result<AddressTable, Error> 
         }
 
         if (statement.label) {
-            if (table.hasOwnProperty(statement.label)) return Err({
-                value: statement.label,
-                cause: Cause.LabelAlreadyDefined,
-            });
+            if (table.hasOwnProperty(statement.label))
+                return Err(Cause.LabelAlreadyDefined, statement.label);
 
             Object.assign(table, { [statement.label]: addressCounter });
         }
@@ -104,13 +89,13 @@ const translate = (unit: TranslationUnit): Result<Program, Error> => {
     let origin = DEFAULT_ORIGIN;
     let instructions: number[] = [];
      
-    for (const statement of unit) {
+    for (const [index, statement] of unit.entries()) {
+        const Err = ErrAtLine(index + 1);
+
         if (statement.instruction) {
             if (statement.mri) {
-                if (!addressTable.hasOwnProperty(statement.address)) return Err({
-                    value: statement.address,
-                    cause: Cause.UnrecognizedAddress,
-                });
+                if (!addressTable.hasOwnProperty(statement.address))
+                    return Err(Cause.UnrecognizedAddress, statement.address);
 
                 const op = statement.op as keyof typeof MRI;
                 const address = addressTable[statement.address] as number;

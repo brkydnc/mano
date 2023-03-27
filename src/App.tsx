@@ -5,6 +5,7 @@ import Simulator, { MEMORY_SIZE, hex } from './simulator/Simulator'
 import Logger, { Log, LogKind } from './logger/Logger';
 import parse from './assembler/parse';
 import translate from './assembler/translate';
+import { and_then } from './assembler/result';
 import './App.css';
 
 const logger = new Logger();
@@ -44,23 +45,15 @@ function App() {
         } else if (e.key == 'Enter' && e.ctrlKey) {
             logger.clear();
 
-            const parseResult = parse(sourceCode);
-            if (!parseResult.ok) {
-                logger.error(parseResult.error.cause);
+            const result = and_then(parse(sourceCode), translate);
+            if (!result.ok) {
+                logger.error(result.error);
                 setExecuteReady(false);
                 setLogs(logger.logs());
                 return;
             }
 
-            const translateResult = translate(parseResult.value);
-            if (!translateResult.ok) {
-                logger.error(translateResult.error.cause.toString());
-                setExecuteReady(false);
-                setLogs(logger.logs());
-                return;
-            }
-                
-            const program = translateResult.value;
+            const program = result.value;
 
             simulator.load(program);
             setExecuteReady(simulator.isRunning());
@@ -75,7 +68,6 @@ function App() {
             <fieldset className="editor">
                 <legend>EDITOR</legend>
                 <textarea
-                    placeholder="Edit mano assembly here..."
                     onKeyDown={handleEditorKeyDown}
                     onChange={(e: any) => setSourceCode(e.target.value)}
                     spellCheck={false}

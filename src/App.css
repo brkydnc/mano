@@ -136,6 +136,7 @@ button:disabled {
     font-size: 1.3rem;
     word-wrap: break-word;
     box-sizing: border-box;
+    text-transform: uppercase;
 
     display:block;
     overflow: hidden;
