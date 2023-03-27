@@ -33,6 +33,7 @@ export default class Simulator {
     private memory: Uint16Array;
     private registers: RegisterFile;
     private flags: Flags;
+    private ready: boolean;
     private _logs: string[];
 
     constructor() {
@@ -41,6 +42,7 @@ export default class Simulator {
         this.flags = new Flags();
         this.registers.time = 0;
         this._logs = [];
+        this.ready = false;
     }
 
     public state(): SimulatorState {
@@ -85,7 +87,7 @@ export default class Simulator {
         this.memory[this.registers.address] = n & 0xFFFF;
     }
 
-    private load(program: Program) {
+    public load(program: Program) {
         const firstSegment = program[0];
         if (!firstSegment) return;
 
@@ -93,10 +95,15 @@ export default class Simulator {
         this.registers = new RegisterFile(firstSegment.origin);
         this.flags = new Flags();
         this._logs = [];
+        this.ready = true;
 
         for (const segment of program) {
             this.memory.set(segment.binary, segment.origin);
         }
+    }
+
+    public isReady(): boolean {
+        return this.ready;
     }
 
     public microStep() {
