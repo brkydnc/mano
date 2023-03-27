@@ -31,9 +31,9 @@ legend {
     gap: 10px 10px;
     grid-auto-flow: row;
     grid-template-areas:
-    "editor editor editor editor debug debug debug debug memory memory memory memory"
-    "editor editor editor editor debug debug debug debug memory memory memory memory"
-    "editor editor editor editor debug debug debug debug memory memory memory memory"
+    "editor editor editor editor logs logs logs logs memory memory memory memory"
+    "editor editor editor editor logs logs logs logs memory memory memory memory"
+    "editor editor editor editor logs logs logs logs memory memory memory memory"
     "editor editor editor editor registers registers registers registers memory memory memory memory"
     "editor editor editor editor registers registers registers registers memory memory memory memory"
     "editor editor editor editor registers registers registers registers memory memory memory memory"
@@ -145,9 +145,41 @@ button:disabled {
     outline: none;
 }
 
+.logs {
+    padding: .8rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.log {
+    margin: 0;
+    font-weight: bold;
+}
+
+.step {
+    margin-left: 1.5rem;
+    font-weight: normal
+}
+
+.context {
+    color: #e0a502;
+}
+
+.info {
+    color: #4892fa;
+}
+
+.warning {
+    color: #e0a502;
+}
+
+.error {
+    color: #fa4848;
+}
+
 .editor { grid-area: editor; }
 .memory { grid-area: memory; }
-.debug { grid-area: debug; }
+.logs { grid-area: logs; }
 .micro { grid-area: micro; }
 .macro { grid-area: macro; }
 .execute { grid-area: execute; }

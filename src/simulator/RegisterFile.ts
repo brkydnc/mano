@@ -1,25 +1,15 @@
 export default class RegisterFile {
-    private _data: number;
-    private _address: number;
-    private _accumulator: number;
-    private _instruction: number;
-    private _program: number;
-    private _temporary: number;
-    private _input: number;
-    private _output: number;
-    private _time: number;
+    private _data: number = 0;
+    private _address: number = 0;
+    private _accumulator: number = 0;
+    private _instruction: number = 0;
+    private _temporary: number = 0;
+    private _input: number = 0;
+    private _output: number = 0;
+    private _time: number = 0;
+    private _program: number = 0;
 
-    constructor(program: number) {
-        this._program = program;
-        this._data = 0;
-        this._address = 0;
-        this._accumulator = 0;
-        this._instruction = 0;
-        this._temporary = 0;
-        this._input = 0;
-        this._output = 0;
-        this._time = 0;
-    }
+    constructor() { }
 
     get data() { return this._data }
     set data(data: number) {

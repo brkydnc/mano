@@ -1,4 +1,5 @@
-import { Program, DEFAULT_ORIGIN, MRI, NonMRI } from '../assembler//translate';
+import { Program, MRI, NonMRI } from '../assembler//translate';
+import Logger from '../logger/Logger';
 import RegisterFile from './RegisterFile';
 import Flags from './Flags';
 
@@ -30,17 +31,13 @@ type SimulatorState = {
 }
 
 export default class Simulator {
-    private memory: Uint16Array;
-    private registers: RegisterFile;
-    private flags: Flags;
-    private _logs: string[];
+    private memory: Uint16Array = new Uint16Array(MEMORY_SIZE);
+    private registers: RegisterFile = new RegisterFile();
+    private flags: Flags = new Flags();
+    private logger: Logger;
 
-    constructor() {
-        this.memory = new Uint16Array(MEMORY_SIZE);
-        this.registers = new RegisterFile(DEFAULT_ORIGIN);
-        this.flags = new Flags();
-        this.registers.time = 0;
-        this._logs = [];
+    constructor(logger: Logger) {
+        this.logger = logger;
     }
 
     public state(): SimulatorState {
@@ -69,14 +66,6 @@ export default class Simulator {
         }
     }
     
-    public logs(): string[] {
-        return Array.from(this._logs);
-    }
-
-    private log(message: string) {
-        this._logs.push(message);
-    }
-
     private readMemory(): number {
         return this.memory[this.registers.address] as number;
     }
@@ -86,17 +75,24 @@ export default class Simulator {
     }
 
     public load(program: Program) {
-        const firstSegment = program[0];
-        if (!firstSegment) return;
-
-        this.memory.fill(0);
-        this.registers = new RegisterFile(firstSegment.origin);
+        this.memory = new Uint16Array(MEMORY_SIZE);
+        this.registers = new RegisterFile();
         this.flags = new Flags();
-        this._logs = [];
+
+        const firstSegment = program[0];
+        if (!firstSegment){
+            this.logger.error("Simulator can't load empty program");
+            return;
+        }
+
+        this.flags.stop = false;
+        this.registers.program = firstSegment.origin;
 
         for (const segment of program) {
             this.memory.set(segment.binary, segment.origin);
         }
+
+        this.logger.info("Program loaded successfully");
     }
 
     public isRunning(): boolean {
@@ -127,11 +123,14 @@ export default class Simulator {
 
     private t0() {
         if (this.flags.interrupt) {
-            console.log(`AR <- 0, TR <- PC = ${this.registers.program}`);
+            this.logger.context("interrupt", this.registers.time);
+            this.logger.step(`AR <- 0`);
+            this.logger.step(`TR <- PC = ${this.registers.program}`);
             this.registers.address = 0;
             this.registers.temporary = this.registers.program;
         } else {
-            console.log(`AR <- PC = ${this.registers.program}`);
+            this.logger.context("fetch", this.registers.time);
+            this.logger.step(`AR <- PC = ${this.registers.program}`);
             this.registers.address = this.registers.program;
         }
 
@@ -140,12 +139,19 @@ export default class Simulator {
 
     private t1() {
         if (this.flags.interrupt) {
-            console.log(`M[AR = ${this.registers.address}] <- TR = ${this.registers.temporary}, PC <- 0`);
+            this.logger.context("interrupt", this.registers.time);
+            this.logger.step(`M[AR = ${this.registers.address}] <- TR = ${this.registers.temporary}`);
+            this.logger.step(`PC <- 0`);
+
             this.writeMemory(this.registers.temporary);
             this.registers.program = 0;
         } else {
             const value = this.readMemory();
-            console.log(`IR <- M[AR = ${this.registers.address}] = ${value}, PC <- 1 + PC = ${this.registers.program}`);
+
+            this.logger.context("fetch", this.registers.time);
+            this.logger.step(`IR <- M[AR = ${this.registers.address}] = ${value}`);
+            this.logger.step(`PC <- 1 + PC = ${this.registers.program}`);
+
             this.registers.instruction = value;
             this.registers.program++;
         }
@@ -155,7 +161,12 @@ export default class Simulator {
 
     private t2() {
         if (this.flags.interrupt) {
-            console.log(`PC <- 1 + PC = ${this.registers.program}, IEN <- 0, R <- 0, SC <- 0`);
+            this.logger.context("interrupt", this.registers.time);
+            this.logger.step(`PC <- 1 + PC = ${this.registers.program}`);
+            this.logger.step(`IEN <- 0`);
+            this.logger.step(`R <- 0`);
+            this.logger.step(`SC <- 0`);
+
             this.registers.program++;
             this.flags.interrupt = false;
             this.flags.interruptEnable = false;
@@ -164,8 +175,13 @@ export default class Simulator {
             const instruction = this.registers.instruction;
             const address = (instruction & 0xFFF).toString(16).padStart(4, '0');
             const indirection = (instruction & 0x8000) > 0 ? '1' : '0';
-            const opcode = (instruction & 0x7000).toString(2);
-            console.log(`AR <- IR[11..0] = ${address}, I <- IR[0] = ${indirection}, D0..D7 <- decode IR = 0b${opcode}`);
+            const opcode = (instruction & 0x7000);
+
+            this.logger.context("decode", this.registers.time);
+            this.logger.step(`AR <- IR[11..0] = ${address}`);
+            this.logger.step(`I <- IR[0] = ${indirection}`);
+            this.logger.step(`D0..D7 <- decode IR = 0b${hex(opcode)}`);
+
             this.registers.address = instruction;
             this.flags.indirection = (instruction & 0x8000) > 0;
             this.registers.time = 3;
@@ -179,144 +195,164 @@ export default class Simulator {
 
         if (mri) {
             if (this.flags.indirection) {
-                console.log("AR <- M[AR]");
+                this.logger.context("indirect", this.registers.time);
+                this.logger.step(`AR <- M[AR]`);
+
                 this.registers.address = this.memory[this.registers.address] as number;
+            } else {
+                this.logger.context("direct", this.registers.time);
+                this.logger.step("nop");
             }
 
             this.registers.time = 4;
         } else {
+            this.logger.context("non_mri", this.registers.time);
+
             switch (instruction) {
                 case NonMRI.CLA:
-                    console.log("AC <- 0")
+                    this.logger.step("AC <- 0")
                     this.registers.accumulator = 0;
                     break;
                 case NonMRI.CLE:
-                    console.log("E <- 0")
+                    this.logger.step("E <- 0")
                     this.flags.overflow = false;
                     break;
                 case NonMRI.CMA:
-                    console.log("AC <- AC'")
+                    this.logger.step("AC <- AC'")
                     this.registers.accumulator = ~this.registers.accumulator;
                     break;
                 case NonMRI.СМЕ:
-                    console.log("E <- E'")
+                    this.logger.step("E <- E'")
                     this.flags.overflow = !this.flags.overflow; 
                     break;
                 case NonMRI.CIR:
-                    console.log("AC <- shr AC, AC[15] <- E, E <- AC[0]")
+                    this.logger.step("AC <- shr AC")
+                    this.logger.step("AC[15] <- E")
+                    this.logger.step("E <- AC[0]")
                     const cir = this.registers.accumulator & 1;
                     this.registers.accumulator = this.registers.accumulator >> 1;
                     this.registers.accumulator |= cir << 15;
                     break;
                 case NonMRI.CIL:
-                    console.log("AC <- shl AC, AC[0] <- E, E <- AC[15]")
+                    this.logger.step("AC <- shl AC")
+                    this.logger.step("AC[0] <- E")
+                    this.logger.step("E <- AC[15]")
                     const cil = this.registers.accumulator & 0x8000;
                     this.registers.accumulator = this.registers.accumulator << 1;
                     this.registers.accumulator |= cil >> 15;
                     break;
                 case NonMRI.INC:
-                    console.log("AC <- AC + 1");
+                    this.logger.step("AC <- AC + 1");
                     this.registers.accumulator++;
                     break;
                 case NonMRI.SPA:
-                    console.log("if(AC[15] == 0) then PC <- PC + 1");
+                    this.logger.step("if(AC[15] == 0) then PC <- PC + 1");
                     if ((this.registers.accumulator & 0x8000) === 0)
                         this.registers.program++;
                     break;
                 case NonMRI.SNA:
-                    console.log("if(AC[15] == 1) then PC <- PC + 1");
+                    this.logger.step("if(AC[15] == 1) then PC <- PC + 1");
                     if ((this.registers.accumulator & 0x8000) === 0x8000)
                         this.registers.program++;
                     break;
                 case NonMRI.SZA:
-                    console.log("if(AC == 0) then PC <- PC + 1");
+                    this.logger.step("if(AC == 0) then PC <- PC + 1");
                     if (this.registers.accumulator === 0)
                         this.registers.program++;
                     break;
                 case NonMRI.SZE:
-                    console.log("if(E == 0) then PC <- PC + 1");
+                    this.logger.step("if(E == 0) then PC <- PC + 1");
                     if (!this.flags.overflow)
                         this.registers.program++;
                     break;
                 case NonMRI.HLT:
-                    console.log("S <- 0");
+                    this.logger.step("S <- 0");
                     this.flags.stop = true;
                     break;
                 case NonMRI.INP:
-                    console.log("AC[7..0] <- INPR, FGI <- 0");
+                    this.logger.step("AC[7..0] <- INPR");
+                    this.logger.step("FGI <- 0");
                     this.registers.accumulator = this.registers.input;
                     this.flags.input = false;
                     break;
                 case NonMRI.OUT:
-                    console.log("OUTR <- AC[7..0], FGO <- 0");
+                    this.logger.step("OUTR <- AC[7..0]");
+                    this.logger.step("FGO <- 0");
                     this.registers.output = this.registers.accumulator;
                     this.flags.output = false;
                     break;
                 case NonMRI.SKI:
-                    console.log("if(FGI = 1) then PC <- PC + 1");
+                    this.logger.step("if(FGI = 1) then PC <- PC + 1");
                     if (this.flags.input)
                         this.registers.program++;
                     break;
                 case NonMRI.SKO:
-                    console.log("if(FGO = 1) then PC <- PC + 1");
+                    this.logger.step("if(FGO = 1) then PC <- PC + 1");
                     if (this.flags.output)
                         this.registers.program++;
                     break;
                 case NonMRI.ION:
-                    console.log("IEN <- 1");
+                    this.logger.step("IEN <- 1");
                     this.flags.interruptEnable = true;
                     break;
                 case NonMRI.IOF:
-                    console.log("IEN <- 0");
+                    this.logger.step("IEN <- 0");
                     this.flags.interruptEnable = false;
                     break;
                 default:
-                    console.log("WARNING: Unrecognized instruction. Assuming nop.");
-                    this.registers.time = 0;
-                    return;
+                    this.logger.warning(`Unrecognized instruction ${hex(instruction)}`);
+                    this.logger.warning(`Assuming nop`);
+                    break;
             }
 
+            this.logger.step("SC <- 0");
             this.registers.time = 0;
         }
     }
 
     private t4() {
+        this.logger.context("mri", this.registers.time);
         const opcode = this.registers.instruction & 0x7000;
 
         switch (opcode) {
             case MRI.AND:
-                console.log("DR <- M[AR]");
+                this.logger.step("DR <- M[AR]");
                 this.registers.data = this.memory[this.registers.address] as number;
                 break;
             case MRI.ADD:
-                console.log("DR <- M[AR]");
+                this.logger.step("DR <- M[AR]");
                 this.registers.data = this.memory[this.registers.address] as number;
                 break;
             case MRI.LDA:
-                console.log("DR <- M[AR]");
+                this.logger.step("DR <- M[AR]");
                 this.registers.data = this.memory[this.registers.address] as number;
                 break;
             case MRI.STA:
-                console.log("M[AR] <- AC, SC <- 0");
+                this.logger.step("M[AR] <- AC");
+                this.logger.step("SC <- 0");
                 this.memory[this.registers.address] = this.registers.accumulator;
                 this.registers.time = 0;
                 return;
             case MRI.BUN:
-                console.log("PC <- AR, SC <- 0");
+                this.logger.step("PC <- AR");
+                this.logger.step("SC <- 0");
                 this.registers.program = this.registers.address;
                 this.registers.time = 0;
                 return;
             case MRI.BSA:
-                console.log("M[AR] <- PC, AR <- AR + 1");
+                this.logger.step("M[AR] <- PC");
+                this.logger.step("AR <- AR + 1");
                 this.memory[this.registers.address] = this.registers.program;
                 this.registers.address++;
                 break;
             case MRI.ISZ:
-                console.log("DR <- M[AR]");
+                this.logger.step("DR <- M[AR]");
                 this.registers.data = this.memory[this.registers.address] as number;
                 break;
             default:
-                console.log("WARNING: Unrecognized instruction. Assuming nop.");
+                this.logger.warning(`Unrecognized instruction ${hex(opcode)}`);
+                this.logger.warning(`Assuming nop`);
+                this.logger.step("SC <- 0");
                 this.registers.time = 0;
                 return;
         }
@@ -325,43 +361,50 @@ export default class Simulator {
     }
 
     private t5() {
+        this.logger.context("mri", this.registers.time);
         const opcode = this.registers.instruction & 0x7000;
 
         switch (opcode) {
             case MRI.AND:
-                console.log("AC <- AC ^ DR, SC <- 0");
+                this.logger.step("AC <- AC ^ DR");
                 this.registers.accumulator = this.registers.accumulator & this.registers.data;
-                return;
+                break;
             case MRI.ADD:
-                console.log("AC <- AC + DR, E <- Cout, SC <- 0");
+                this.logger.step("AC <- AC + DR");
+                this.logger.step("E <- Cout");
                 const sum = this.registers.accumulator + this.registers.data;
                 this.registers.accumulator = sum;
                 this.flags.overflow = (sum & 0x10000) > 0;
-                return;
+                break;
             case MRI.LDA:
-                console.log("AC <- DR, SC <- 0");
+                this.logger.step("AC <- DR");
                 this.registers.accumulator = this.registers.data;
-                return;
+                break;
             case MRI.BSA:
-                console.log("PC <- AR, SC <- 0");
+                this.logger.step("PC <- AR");
                 this.registers.program = this.registers.address;
                 break;
             case MRI.ISZ:
-                console.log("DR <- DR + 1");
+                this.logger.step("DR <- DR + 1");
                 this.registers.data++;
                 this.registers.time = 6;
                 return;
             default:
-                console.log("WARNING: Unrecognized instruction. Assuming nop.");
-                this.registers.time = 0;
-                return;
+                this.logger.warning(`Unrecognized opcode ${hex(opcode)}`);
+                this.logger.warning(`Assuming nop`);
+                break;
         }
 
+        this.logger.step("SC <- 0")
         this.registers.time = 0;
     }
 
     private t6() {
-        console.log("M[AR] <- DR, if (DR = 0) PC <- PC + 1, SC <- 0");
+        this.logger.context("mri", this.registers.time);
+        this.logger.step("M[AR] <- DR");
+        this.logger.step("if (DR = 0) PC <- PC + 1");
+        this.logger.step("SC <- 0");
+
         this.memory[this.registers.address] = this.registers.data;
         if (this.registers.data = 0) this.registers.program++;
         this.registers.time = 0;

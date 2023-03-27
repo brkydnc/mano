@@ -1,24 +1,36 @@
-import { useState, MouseEvent } from 'react';
-import Simulator, { MEMORY_SIZE, hex } from './simulator/Simulator'
+import { useState, useEffect, useRef, MouseEvent } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
+import Simulator, { MEMORY_SIZE, hex } from './simulator/Simulator'
+import Logger, { Log, LogKind } from './logger/Logger';
 import parse from './assembler/parse';
 import translate from './assembler/translate';
 import './App.css';
 
-const simulator = new Simulator();
+const logger = new Logger();
+const simulator = new Simulator(logger);
+
+logger.info("Hit CTRL + Enter on the editor to load the program to the simulator.")
 
 function App() {
     const [simulatorState, setSimulatorState] = useState(simulator.state());
-    const [debugLogs, setDebugLogs] = useState([]);
     const [sourceCode, setSourceCode] = useState("");
     const [executeReady, setExecuteReady] = useState(false);
+    const [logs, setLogs] = useState(logger.logs());
+    const logsBottomRef = useRef<null | HTMLDivElement>(null);
+
+    useEffect(() => {
+        logsBottomRef.current?.scrollIntoView({
+            behavior: 'smooth'
+        });
+    }, [logs]);
 
     const handleStep = (step: () => void) => () => {
         step.call(simulator);
         const state = simulator.state();
         setSimulatorState(state);
         setExecuteReady(simulator.isRunning());
+        setLogs(logger.logs());
     }
 
     const handleEditorKeyDown = (e: any) => {
@@ -30,24 +42,30 @@ function App() {
                 "    " + e.target.value.substring(end);
             e.target.selectionStart = e.target.selectionEnd = start + 4;
         } else if (e.key == 'Enter' && e.ctrlKey) {
+            logger.clear();
+
             const parseResult = parse(sourceCode);
             if (!parseResult.ok) {
-                console.log(parseResult.error);
+                logger.error(parseResult.error.cause);
                 setExecuteReady(false);
+                setLogs(logger.logs());
                 return;
             }
 
             const translateResult = translate(parseResult.value);
             if (!translateResult.ok) {
-                console.log(translateResult.error);
+                logger.error(translateResult.error.cause.toString());
                 setExecuteReady(false);
+                setLogs(logger.logs());
                 return;
             }
                 
             const program = translateResult.value;
+
             simulator.load(program);
             setExecuteReady(simulator.isRunning());
             setSimulatorState(simulator.state());
+            setLogs(logger.logs());
         }
     }
 
@@ -69,9 +87,10 @@ function App() {
                 <Memory memory={simulatorState.memory} />
             </fieldset>
 
-            <fieldset className="debug">
-                <legend>DEBUG</legend>
-                <Log messages={[]} />
+            <fieldset className="logs">
+                <legend>LOGS</legend>
+                { logs.map((log, index) => renderLog(log, index)) }
+                <div ref={logsBottomRef}></div>
             </fieldset>
             <fieldset className="registers">
                 <legend>REGISTERS & FLAGS</legend>
@@ -220,16 +239,19 @@ const Memory = ({ memory }: MemoryProps): JSX.Element => {
     );
 };
 
-type LogProps = { messages: string[] };
-
-const Log = ({ messages }: LogProps): JSX.Element => (
-    <div>
-        {
-            Array.from(messages.entries()).map(([i, m]) => (
-                <p key={i}>{m}</p>
-            ))
-        }
-    </div>
-)
+const renderLog = (log: Log, key: number) => {
+    switch (log.kind) {
+        case LogKind.Step:
+            return <p key={key} className="log step">{log.step}</p>;
+        case LogKind.Context:
+            return <p key={key} className="log context">[{log.title}:t{log.time}]</p>;
+        case LogKind.Info:
+            return <p key={key} className="log info">[INFO]: {log.info}</p>;
+        case LogKind.Warning:
+            return <p key={key} className="log warning">[WARNING]: {log.warning}</p>;
+        case LogKind.Error:
+            return <p key={key} className="log error">[ERROR]: {log.error}</p>;
+    }
+}
 
 export default App;
