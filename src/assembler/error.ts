@@ -2,7 +2,7 @@ import { Result, Err } from './result';
 
 export type Error = {
     value?: any,
-    line: number,
+    line?: number,
     cause: Cause,
 }
 

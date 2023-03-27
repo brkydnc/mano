@@ -49,10 +49,10 @@ export default class Logger {
     }
 
     public error(error: Error) {
-        const l = error.line;
-        const c = error.cause;
-        const v = error.value ? `"${error.value.toString()}" ` : ``;
-        const message = `(at line ${l}) ${v}${c}`;
+        const cause = error.cause;
+        const line = error.line ? `(at line ${error.line}) ` : ``;
+        const value = error.value ? `"${error.value.toString()}" ` : ``;
+        const message = `${line}${value}${cause}`;
 
         this._logs.push({ kind: LogKind.Error, error: message });
     }

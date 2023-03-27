@@ -180,7 +180,7 @@ export default class Simulator {
             this.logger.context("decode", this.registers.time);
             this.logger.step(`AR <- IR[11..0] = ${address}`);
             this.logger.step(`I <- IR[0] = ${indirection}`);
-            this.logger.step(`D0..D7 <- decode IR = 0b${hex(opcode)}`);
+            this.logger.step(`D0..D7 <- decode IR = ${hex(opcode)}`);
 
             this.registers.address = instruction;
             this.flags.indirection = (instruction & 0x8000) > 0;
@@ -198,7 +198,7 @@ export default class Simulator {
                 this.logger.context("indirect", this.registers.time);
                 this.logger.step(`AR <- M[AR]`);
 
-                this.registers.address = this.memory[this.registers.address] as number;
+                this.registers.address = this.readMemory();
             } else {
                 this.logger.context("direct", this.registers.time);
                 this.logger.step("nop");
@@ -315,22 +315,14 @@ export default class Simulator {
         const opcode = this.registers.instruction & 0x7000;
 
         switch (opcode) {
-            case MRI.AND:
+            case MRI.AND, MRI.ADD, MRI.LDA, MRI.ISZ:
                 this.logger.step("DR <- M[AR]");
-                this.registers.data = this.memory[this.registers.address] as number;
-                break;
-            case MRI.ADD:
-                this.logger.step("DR <- M[AR]");
-                this.registers.data = this.memory[this.registers.address] as number;
-                break;
-            case MRI.LDA:
-                this.logger.step("DR <- M[AR]");
-                this.registers.data = this.memory[this.registers.address] as number;
+                this.registers.data = this.readMemory();
                 break;
             case MRI.STA:
                 this.logger.step("M[AR] <- AC");
                 this.logger.step("SC <- 0");
-                this.memory[this.registers.address] = this.registers.accumulator;
+                this.writeMemory(this.registers.accumulator);
                 this.registers.time = 0;
                 return;
             case MRI.BUN:
@@ -342,12 +334,8 @@ export default class Simulator {
             case MRI.BSA:
                 this.logger.step("M[AR] <- PC");
                 this.logger.step("AR <- AR + 1");
-                this.memory[this.registers.address] = this.registers.program;
+                this.writeMemory(this.registers.program);
                 this.registers.address++;
-                break;
-            case MRI.ISZ:
-                this.logger.step("DR <- M[AR]");
-                this.registers.data = this.memory[this.registers.address] as number;
                 break;
             default:
                 this.logger.warning(`Unrecognized instruction ${hex(opcode)}`);
@@ -405,7 +393,7 @@ export default class Simulator {
         this.logger.step("if (DR = 0) PC <- PC + 1");
         this.logger.step("SC <- 0");
 
-        this.memory[this.registers.address] = this.registers.data;
+        this.writeMemory(this.registers.data);
         if (this.registers.data = 0) this.registers.program++;
         this.registers.time = 0;
     }

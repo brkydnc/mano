@@ -1,5 +1,5 @@
 import { TranslationUnit, Operation, MemoryReferenceInstruction, NonMemoryReferenceInstruction } from './parse';
-import { Result, Ok } from './result';
+import { Result, Ok, Err as ResultErr } from './result';
 import { Error, Cause, ErrAtLine } from './error';
 
 const DEFAULT_ORIGIN = 0x0002;
@@ -107,6 +107,7 @@ const translate = (unit: TranslationUnit): Result<Program, Error> => {
 
     let origin = DEFAULT_ORIGIN;
     let instructions: number[] = [];
+    let haltFound = false;
 
     translation: for (const statement of unit) {
         const Err = ErrAtLine(statement.line);
@@ -120,6 +121,7 @@ const translate = (unit: TranslationUnit): Result<Program, Error> => {
                 break;
 
             case Operation.NonMRI:
+                if (statement.content.instruction == "HLT") haltFound = true;
                 instructions.push(NonMRIBinary(statement.content));
                 break;
 
@@ -143,6 +145,7 @@ const translate = (unit: TranslationUnit): Result<Program, Error> => {
     if (instructions.length > 0)
         program.push({ origin, binary: new Uint16Array(instructions) });
 
+    if (!haltFound) return ResultErr({ cause: Cause.HaltExpected });
 
     return Ok(program);
 }
