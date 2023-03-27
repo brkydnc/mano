@@ -21,7 +21,7 @@ export enum Cause {
     NoNumeral                   = "Expected a numeral operand",
     InvalidIndirectionSymbol    = "Invalid indirection symbol, expected 'I' or none",
     LabelAlreadyDefined         = "Label already defined.",
-    OriginOutOfOrder            = "Origin address is less than the previous one or the default origin addres 2",
+    OriginOutOfOrder            = "Origin address is less than the previous one or the default origin addres 0",
     AddressLimitExceeded        = "Program binary exceeds address limit  4096, lower the origin address",
     UnrecognizedAddress         = "Unrecognized address label",
     HaltExpected                = "Expected at least one HLT instruction, found none",

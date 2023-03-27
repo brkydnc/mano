@@ -5,7 +5,7 @@ export default class Flags {
     public interrupt: boolean = false;
     public interruptEnable: boolean = false;
     public input: boolean = false;
-    public output: boolean = false;
+    public output: boolean = true;
 
     constructor() { }
 }

@@ -2,7 +2,7 @@ import { TranslationUnit, Operation, MemoryReferenceInstruction, NonMemoryRefere
 import { Result, Ok, Err as ResultErr } from './result';
 import { Error, Cause, ErrAtLine } from './error';
 
-const DEFAULT_ORIGIN = 0x0002;
+const DEFAULT_ORIGIN = 0x0000;
 export const ADDRESS_LIMIT = 0xFFF;
 
 export const MRI = {
@@ -60,7 +60,7 @@ const createAddressTable = (unit: TranslationUnit): Result<AddressTable, Error> 
                 if (statement.content.decimal < addressCounter)
                     return Err(Cause.OriginOutOfOrder, statement.content.decimal);
                 addressCounter = statement.content.decimal;
-                break;
+                continue;
 
             case Operation.END:
                 break firstPass;

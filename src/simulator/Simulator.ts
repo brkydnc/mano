@@ -1,6 +1,6 @@
 import { Program, MRI, NonMRI } from '../assembler//translate';
 import Logger from '../logger/Logger';
-import RegisterFile from './RegisterFile';
+import RegisterFile, { DEFAULT_PC } from './RegisterFile';
 import Flags from './Flags';
 
 export const MEMORY_SIZE = 4096;
@@ -8,6 +8,8 @@ export const hex = (n: number): string => '0x' + n.toString(16).padStart(4, '0')
 
 type SimulatorState = {
     memory: number[],
+    input: string,
+    output: string,
     registers: {
         data: number;
         address: number;
@@ -34,6 +36,8 @@ export default class Simulator {
     private memory: Uint16Array = new Uint16Array(MEMORY_SIZE);
     private registers: RegisterFile = new RegisterFile();
     private flags: Flags = new Flags();
+    private input: string = "";
+    private output: string = "";
     private logger: Logger;
 
     constructor(logger: Logger) {
@@ -43,6 +47,8 @@ export default class Simulator {
     public state(): SimulatorState {
         return {
             memory: Array.from(this.memory),
+            input: this.input,
+            output: this.output,
             registers: {
                 data: this.registers.data,
                 address: this.registers.address,
@@ -65,6 +71,10 @@ export default class Simulator {
             },
         }
     }
+
+    public setInput(str: string) {
+        this.input = str;
+    }
     
     private readMemory(): number {
         return this.memory[this.registers.address] as number;
@@ -86,7 +96,7 @@ export default class Simulator {
         }
 
         this.flags.stop = false;
-        this.registers.program = firstSegment.origin;
+        this.registers.program = Math.max(firstSegment.origin, DEFAULT_PC);
 
         for (const segment of program) {
             this.memory.set(segment.binary, segment.origin);
@@ -105,6 +115,22 @@ export default class Simulator {
         const steps = [this.t0, this.t1, this.t2, this.t3, this.t4, this.t5, this.t6];
         const step = steps[this.registers.time] as (() => void);
         step.call(this);
+        
+        if (this.registers.time === 0) {
+            const io = this.flags.input || this.flags.output;
+            this.flags.interrupt = io && this.flags.interruptEnable;
+
+            if (!this.flags.input && this.input.charAt(0)) {
+                this.flags.input = true;
+                this.registers.input = this.input.charCodeAt(0);
+                this.input = this.input.slice(1);
+            }
+
+            if (!this.flags.output) {
+                this.flags.output = true;
+                this.output += String.fromCharCode(this.registers.output);
+            }
+        }
     }
 
     public macroStep() {

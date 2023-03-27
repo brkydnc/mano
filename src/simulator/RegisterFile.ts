@@ -1,3 +1,5 @@
+export const DEFAULT_PC = 0x002;
+
 export default class RegisterFile {
     private _data: number = 0;
     private _address: number = 0;
@@ -7,7 +9,7 @@ export default class RegisterFile {
     private _input: number = 0;
     private _output: number = 0;
     private _time: number = 0;
-    private _program: number = 0;
+    private _program: number = DEFAULT_PC;
 
     constructor() { }
 

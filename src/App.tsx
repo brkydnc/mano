@@ -26,6 +26,11 @@ function App() {
         });
     }, [logs]);
 
+    const handleInput = (e: any) => {
+        simulator.setInput(e.target.value);
+        setSimulatorState(simulator.state());
+    }
+
     const handleStep = (step: () => void) => () => {
         step.call(simulator);
         const state = simulator.state();
@@ -37,11 +42,12 @@ function App() {
     const handleEditorKeyDown = (e: any) => {
         if (e.key == 'Tab') {
             e.preventDefault();
-            const start = e.target.selectionStart;
-            const end = e.target.selectionEnd;
-            e.target.value = e.target.value.substring(0, start) +
-                "    " + e.target.value.substring(end);
-            e.target.selectionStart = e.target.selectionEnd = start + 4;
+            const editor = e.target;
+            const content = editor.value;
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            editor.value = content.substring(0, start) + "    " + content.substring(end);
+            editor.selectionStart = editor.selectionEnd = start + 4;
         } else if (e.key == 'Enter' && e.ctrlKey) {
             logger.clear();
 
@@ -85,6 +91,7 @@ function App() {
                 { logs.map((log, index) => renderLog(log, index)) }
                 <div ref={logsBottomRef}></div>
             </fieldset>
+
             <fieldset className="registers">
                 <legend>REGISTERS & FLAGS</legend>
                 <div className="dr">
@@ -143,7 +150,7 @@ function App() {
                     type="button"
                     value="MICROSTEP"
                     onClick={handleStep(simulator.microStep)}
-                    >
+                >
                     MICROSTEP
                 </button>
             </div>
@@ -153,7 +160,7 @@ function App() {
                     disabled={!executeReady}
                     type="button"
                     onClick={handleStep(simulator.macroStep)}
-                    >
+                >
                     MACROSTEP
                 </button>
             </div>
@@ -163,16 +170,24 @@ function App() {
                     disabled={!executeReady}
                     onClick={handleStep(simulator.execute)}
                     type="button"
-                    >
+                >
                     EXECUTE
                 </button>
             </div>
 
             <fieldset className="output">
                 <legend>OUTPUT STREAM</legend>
+                { simulatorState.output }
             </fieldset>
+
             <fieldset className="input">
                 <legend>INPUT STREAM</legend>
+                <textarea
+                    spellCheck={false}
+                    onChange={handleInput}
+                    value={simulatorState.input}
+                >
+                </textarea>
             </fieldset>
         </div>
     </main>
