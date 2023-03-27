@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/mano/static/css/main.ba413a15.css",
+    "main.js": "/mano/static/js/main.d077bdd6.js",
+    "index.html": "/mano/index.html",
+    "main.ba413a15.css.map": "/mano/static/css/main.ba413a15.css.map",
+    "main.d077bdd6.js.map": "/mano/static/js/main.d077bdd6.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.ba413a15.css",
+    "static/js/main.d077bdd6.js"
+  ]
+}
