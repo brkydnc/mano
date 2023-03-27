@@ -10,7 +10,7 @@ import './App.css';
 const logger = new Logger();
 const simulator = new Simulator(logger);
 
-logger.info("Hit CTRL + Enter on the editor to load the program to the simulator.")
+logger.info("Hit CTRL + Enter in the editor to load the program into the simulator.")
 
 function App() {
     const [simulatorState, setSimulatorState] = useState(simulator.state());
@@ -75,6 +75,7 @@ function App() {
             <fieldset className="editor">
                 <legend>EDITOR</legend>
                 <textarea
+                    placeholder="Edit mano assembly here..."
                     onKeyDown={handleEditorKeyDown}
                     onChange={(e: any) => setSourceCode(e.target.value)}
                     spellCheck={false}
