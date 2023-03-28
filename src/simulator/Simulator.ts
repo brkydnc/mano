@@ -434,7 +434,7 @@ export default class Simulator {
         this.logger.step("SC <- 0");
 
         this.writeMemory(this.registers.data);
-        if (this.registers.data = 0) this.registers.program++;
+        if (this.registers.data === 0) this.registers.program++;
         this.registers.time = 0;
     }
 }
