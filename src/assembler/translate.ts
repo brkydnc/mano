@@ -57,9 +57,9 @@ const createAddressTable = (unit: TranslationUnit): Result<AddressTable, Error> 
 
         switch (statement.content.operation) {
             case Operation.ORG:
-                if (statement.content.decimal < addressCounter)
-                    return Err(Cause.OriginOutOfOrder, statement.content.decimal);
-                addressCounter = statement.content.decimal;
+                if (statement.content.hexadecimal < addressCounter)
+                    return Err(Cause.OriginOutOfOrder, statement.content.hexadecimal);
+                addressCounter = statement.content.hexadecimal;
                 continue;
 
             case Operation.END:
@@ -130,7 +130,7 @@ const translate = (unit: TranslationUnit): Result<Program, Error> => {
                     program.push({ origin, binary: new Uint16Array(instructions) });
 
                 instructions = [];
-                origin = statement.content.decimal;
+                origin = statement.content.hexadecimal;
                 break;
 
             case Operation.END:

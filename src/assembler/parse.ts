@@ -37,7 +37,7 @@ type Directive = {
     operation: Operation.END,
 } | {
     operation: Operation.ORG,
-    decimal: number,
+    hexadecimal: number,
 } | {
     operation: Operation.HEX | Operation.DEC,
     numeral: number,
@@ -128,8 +128,8 @@ const parse = (input: string): Result<TranslationUnit, Error> => {
 
                 switch (op) {
                     case "ORG":
-                        if (!isDecimal(numeral)) return Err(Cause.InvalidDecimal, numeral);
-                        pushStatement({ operation: Operation.ORG, decimal });
+                        if (!isHexadecimal(numeral)) return Err(Cause.InvalidHexadecimal, numeral);
+                        pushStatement({ operation: Operation.ORG, hexadecimal });
                         break;
                     case "HEX":
                         if (!isHexadecimal(numeral)) return Err(Cause.InvalidHexadecimal, numeral);
