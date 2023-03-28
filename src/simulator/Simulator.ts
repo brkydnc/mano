@@ -148,15 +148,17 @@ export default class Simulator {
     }
 
     private t0() {
+        const pc = hex(this.registers.program);
+
         if (this.flags.interrupt) {
             this.logger.context("interrupt", this.registers.time);
             this.logger.step(`AR <- 0`);
-            this.logger.step(`TR <- PC = ${this.registers.program}`);
+            this.logger.step(`TR <- PC = ${pc}`);
             this.registers.address = 0;
             this.registers.temporary = this.registers.program;
         } else {
             this.logger.context("fetch", this.registers.time);
-            this.logger.step(`AR <- PC = ${this.registers.program}`);
+            this.logger.step(`AR <- PC = ${pc}`);
             this.registers.address = this.registers.program;
         }
 
@@ -164,21 +166,26 @@ export default class Simulator {
     }
 
     private t1() {
+        const ar = hex(this.registers.address);
+
         if (this.flags.interrupt) {
+            const tr = hex(this.registers.temporary);
+
             this.logger.context("interrupt", this.registers.time);
-            this.logger.step(`M[AR = ${this.registers.address}] <- TR = ${this.registers.temporary}`);
+            this.logger.step(`M[AR = ${ar}] <- TR = ${tr}`);
             this.logger.step(`PC <- 0`);
 
             this.writeMemory(this.registers.temporary);
             this.registers.program = 0;
         } else {
-            const value = this.readMemory();
+            const mar = this.readMemory();
+            const pc = hex(this.registers.program);
 
             this.logger.context("fetch", this.registers.time);
-            this.logger.step(`IR <- M[AR = ${this.registers.address}] = ${value}`);
-            this.logger.step(`PC <- 1 + PC = ${this.registers.program}`);
+            this.logger.step(`IR <- M[AR = ${ar}] = ${hex(mar)}`);
+            this.logger.step(`PC <- 1 + PC = ${pc}`);
 
-            this.registers.instruction = value;
+            this.registers.instruction = mar;
             this.registers.program++;
         }
 
@@ -186,9 +193,11 @@ export default class Simulator {
     }
 
     private t2() {
+        const pc = hex(this.registers.program);
+
         if (this.flags.interrupt) {
             this.logger.context("interrupt", this.registers.time);
-            this.logger.step(`PC <- 1 + PC = ${this.registers.program}`);
+            this.logger.step(`PC <- 1 + PC = ${pc}`);
             this.logger.step(`IEN <- 0`);
             this.logger.step(`R <- 0`);
             this.logger.step(`SC <- 0`);
@@ -199,14 +208,14 @@ export default class Simulator {
             this.registers.time = 0;
         } else {
             const instruction = this.registers.instruction;
-            const address = (instruction & 0xFFF).toString(16).padStart(4, '0');
+            const address = hex(instruction & 0xFFF);
             const indirection = (instruction & 0x8000) > 0 ? '1' : '0';
-            const opcode = (instruction & 0x7000);
+            const opcode = (instruction & 0x7000) >> 12;
 
             this.logger.context("decode", this.registers.time);
             this.logger.step(`AR <- IR[11..0] = ${address}`);
             this.logger.step(`I <- IR[0] = ${indirection}`);
-            this.logger.step(`D0..D7 <- decode IR = ${hex(opcode)}`);
+            this.logger.step(`D0..D7 <- decode IR[12..14] = ${opcode}`);
 
             this.registers.address = instruction;
             this.flags.indirection = (instruction & 0x8000) > 0;
@@ -227,7 +236,7 @@ export default class Simulator {
                 this.registers.address = this.readMemory();
             } else {
                 this.logger.context("direct", this.registers.time);
-                this.logger.step("nop");
+                this.logger.step("no indirection");
             }
 
             this.registers.time = 4;
