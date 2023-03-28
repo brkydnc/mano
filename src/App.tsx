@@ -40,13 +40,15 @@ function App() {
     }
 
     const lineFormat = (line:string) : string => {
+        const LABEL_COMMA = /^[A-Z][0-9A-Z]{0,2},/;
+
         line = line.trim().toUpperCase();
-        const label = line.match(/^[A-Z][0-9A-Z]{0,2},/);
+        const label = line.match(LABEL_COMMA);
         
         if(label === null)
             return "    " + line;
         
-        return label.toString() + " ".repeat(4-label.toString().length) + line.replace(/^[A-Z][0-9A-Z]{0,2},/, "").trimStart();
+        return label.toString() + " ".repeat(4-label.toString().length) + line.replace(LABEL_COMMA, "").trimStart();
     }
 
     const handleEditorKeyDown = (e: any) => {
