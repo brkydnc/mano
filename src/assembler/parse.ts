@@ -135,7 +135,6 @@ const parse = (input: string): Result<TranslationUnit, Error> => {
                         if (!isHexadecimal(numeral)) return Err(Cause.InvalidHexadecimal, numeral);
                         pushStatement({ operation: Operation.HEX, numeral: hexadecimal });
                         break;
-                    break;
                     case "DEC":
                         if (!isDecimal(numeral)) return Err(Cause.InvalidDecimal, numeral);
                         pushStatement({ operation: Operation.DEC, numeral: decimal });
