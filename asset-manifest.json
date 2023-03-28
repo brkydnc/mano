@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/mano/static/css/main.6f7b8f05.css",
-    "main.js": "/mano/static/js/main.a8156933.js",
+    "main.js": "/mano/static/js/main.af2f403c.js",
     "index.html": "/mano/index.html",
     "main.6f7b8f05.css.map": "/mano/static/css/main.6f7b8f05.css.map",
-    "main.a8156933.js.map": "/mano/static/js/main.a8156933.js.map"
+    "main.af2f403c.js.map": "/mano/static/js/main.af2f403c.js.map"
   },
   "entrypoints": [
     "static/css/main.6f7b8f05.css",
-    "static/js/main.a8156933.js"
+    "static/js/main.af2f403c.js"
   ]
 }
