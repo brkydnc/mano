@@ -267,6 +267,7 @@ export default class Simulator {
                     const cir = this.registers.accumulator & 1;
                     this.registers.accumulator = this.registers.accumulator >> 1;
                     this.registers.accumulator |= cir << 15;
+                    this.flags.overflow = cir > 0;
                     break;
                 case NonMRI.CIL:
                     this.logger.step("AC <- shl AC")
@@ -275,6 +276,7 @@ export default class Simulator {
                     const cil = this.registers.accumulator & 0x8000;
                     this.registers.accumulator = this.registers.accumulator << 1;
                     this.registers.accumulator |= cil >> 15;
+                    this.flags.overflow = cil > 0;
                     break;
                 case NonMRI.INC:
                     this.logger.step("AC <- AC + 1");
