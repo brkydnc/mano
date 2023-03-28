@@ -6,9 +6,23 @@
 main {
     min-height: 100vh;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     background-color: #292929;
+}
+
+a {
+    margin: .5rem;
+    text-decoration: none;
+}
+
+a:visited {
+    text-decoration: none;
+}
+
+a:hover {
+    color: #ababab;
 }
 
 fieldset {

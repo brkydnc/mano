@@ -190,6 +190,10 @@ function App() {
                 </textarea>
             </fieldset>
         </div>
+        <div>
+            <a href="https://github.com/brkydnc/mano">[source]</a>
+            <a href="https://github.com/brkydnc">[github]</a>
+        </div>
     </main>
     );
 }
