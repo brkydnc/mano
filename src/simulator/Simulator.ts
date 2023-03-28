@@ -256,7 +256,7 @@ export default class Simulator {
                     this.logger.step("AC <- AC'")
                     this.registers.accumulator = ~this.registers.accumulator;
                     break;
-                case NonMRI.СМЕ:
+                case NonMRI.CME:
                     this.logger.step("E <- E'")
                     this.flags.overflow = !this.flags.overflow; 
                     break;

@@ -19,7 +19,7 @@ export const NonMRI = {
     CLA: 0x7800,
     CLE: 0x7400,
     CMA: 0x7200,
-    СМЕ: 0x7100,
+    CME: 0x7100,
     CIR: 0x7080,
     CIL: 0x7040,
     INC: 0x7020,
