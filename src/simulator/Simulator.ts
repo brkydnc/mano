@@ -341,7 +341,10 @@ export default class Simulator {
         const opcode = this.registers.instruction & 0x7000;
 
         switch (opcode) {
-            case MRI.AND, MRI.ADD, MRI.LDA, MRI.ISZ:
+            case MRI.AND:
+            case MRI.ADD:
+            case MRI.LDA:
+            case MRI.ISZ:
                 this.logger.step("DR <- M[AR]");
                 this.registers.data = this.readMemory();
                 break;
