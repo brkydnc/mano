@@ -201,7 +201,10 @@ textarea {
     color: #fa4848;
 }
 
-.editor { grid-area: editor; }
+.editor { 
+    grid-area: editor; 
+    tab-size: 5;
+}
 .memory { grid-area: memory; }
 .logs { grid-area: logs; }
 .micro { grid-area: micro; }

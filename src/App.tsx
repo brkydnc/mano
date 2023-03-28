@@ -41,15 +41,14 @@ function App() {
 
     const lineFormat = (line:string) : string => {
         const LABEL_COMMA = /^[A-Z][0-9A-Z]{0,2},/;
-        const INDENT = 5;
 
         line = line.trim().toUpperCase();
         const label = line.match(LABEL_COMMA);
         
         if(label === null)
-            return " ".repeat(INDENT) + line;
+            return "\t" + line;
         
-        return label.toString() + " ".repeat(INDENT-label.toString().length) + line.replace(LABEL_COMMA, "").trimStart();
+        return label.toString() + "\t" + line.replace(LABEL_COMMA, "").trimStart();
     }
 
     const handleEditorKeyDown = (e: any) => {
@@ -59,8 +58,8 @@ function App() {
             const content = editor.value;
             const start = editor.selectionStart;
             const end = editor.selectionEnd;
-            editor.value = content.substring(0, start) + "    " + content.substring(end);
-            editor.selectionStart = editor.selectionEnd = start + 4;
+            editor.value = content.substring(0, start) + "\t" + content.substring(end);
+            editor.selectionStart = editor.selectionEnd = start + 1;
         } else if (e.key === 'Enter' && e.ctrlKey) {
             logger.clear();
 
