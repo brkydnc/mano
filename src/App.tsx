@@ -40,7 +40,7 @@ function App() {
     }
 
     const handleEditorKeyDown = (e: any) => {
-        if (e.key == 'Tab') {
+        if (e.key === 'Tab') {
             e.preventDefault();
             const editor = e.target;
             const content = editor.value;
@@ -48,7 +48,7 @@ function App() {
             const end = editor.selectionEnd;
             editor.value = content.substring(0, start) + "    " + content.substring(end);
             editor.selectionStart = editor.selectionEnd = start + 4;
-        } else if (e.key == 'Enter' && e.ctrlKey) {
+        } else if (e.key === 'Enter' && e.ctrlKey) {
             logger.clear();
 
             const result = and_then(parse(sourceCode), translate);
