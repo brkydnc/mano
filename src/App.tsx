@@ -39,6 +39,16 @@ function App() {
         setLogs(logger.logs());
     }
 
+    const lineFormat = (line:string) : string => {
+        line = line.trim().toUpperCase();
+        const label = line.match(/^[A-Z][0-9A-Z]{0,2},/);
+        
+        if(label === null)
+            return "    " + line;
+        
+        return label.toString() + " ".repeat(4-label.toString().length) + line.replace(/^[A-Z][0-9A-Z]{0,2},/, "").trimStart();
+    }
+
     const handleEditorKeyDown = (e: any) => {
         if (e.key === 'Tab') {
             e.preventDefault();
@@ -65,7 +75,14 @@ function App() {
             setExecuteReady(simulator.isRunning());
             setSimulatorState(simulator.state());
             setLogs(logger.logs());
+        } else if(e.key.toUpperCase() === 'F' && e.ctrlKey && e.shiftKey){
+            const editor = e.target;
+            const content = editor.value;
+
+            editor.value = content.split('\n').map(lineFormat).join('\n');
         }
+
+
     }
 
     return (
