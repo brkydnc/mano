@@ -51,10 +51,13 @@ function App() {
         return label.toString() + "\t" + line.replace(LABEL_COMMA, "").trimStart();
     }
 
-    const handleEditorKeyDown = (e: any) => {
+    const handleEditorKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement> | undefined) => {
+        if(e === undefined)
+            return;
+
         if (e.key === 'Tab') {
             e.preventDefault();
-            const editor = e.target;
+            const editor = e.currentTarget;
             const content = editor.value;
             const start = editor.selectionStart;
             const end = editor.selectionEnd;
@@ -78,7 +81,7 @@ function App() {
             setSimulatorState(simulator.state());
             setLogs(logger.logs());
         } else if(e.key.toUpperCase() === 'F' && e.ctrlKey && e.shiftKey){
-            const editor = e.target;
+            const editor = e.currentTarget;
             const content = editor.value;
 
             editor.value = content.split('\n').map(lineFormat).join('\n');
