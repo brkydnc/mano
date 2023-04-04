@@ -42,19 +42,26 @@ function App() {
     const lineFormat = (line:string) : string => {
         const LABEL_COMMA = /^[A-Z][0-9A-Z]{0,2},/;
 
-        line = line.trim().toUpperCase();
-        const label = line.match(LABEL_COMMA);
-        
+        const _line = line.trim().toUpperCase();
+
+        if(_line.startsWith("/"))
+            return line;
+
+        const label = _line.match(LABEL_COMMA);
+
         if(label === null)
             return "\t" + line;
         
-        return label.toString() + "\t" + line.replace(LABEL_COMMA, "").trimStart();
+        return label.toString() + "\t" + _line.replace(LABEL_COMMA, "").trimStart();
     }
 
-    const handleEditorKeyDown = (e: any) => {
+    const handleEditorKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement> | undefined) => {
+        if(e === undefined)
+            return;
+
         if (e.key === 'Tab') {
             e.preventDefault();
-            const editor = e.target;
+            const editor = e.currentTarget;
             const content = editor.value;
             const start = editor.selectionStart;
             const end = editor.selectionEnd;
@@ -78,7 +85,7 @@ function App() {
             setSimulatorState(simulator.state());
             setLogs(logger.logs());
         } else if(e.key.toUpperCase() === 'F' && e.ctrlKey && e.shiftKey){
-            const editor = e.target;
+            const editor = e.currentTarget;
             const content = editor.value;
 
             editor.value = content.split('\n').map(lineFormat).join('\n');
