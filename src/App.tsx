@@ -42,13 +42,17 @@ function App() {
     const lineFormat = (line:string) : string => {
         const LABEL_COMMA = /^[A-Z][0-9A-Z]{0,2},/;
 
-        line = line.trim().toUpperCase();
-        const label = line.match(LABEL_COMMA);
-        
+        const _line = line.trim().toUpperCase();
+
+        if(_line.startsWith("/"))
+            return line;
+
+        const label = _line.match(LABEL_COMMA);
+
         if(label === null)
             return "\t" + line;
         
-        return label.toString() + "\t" + line.replace(LABEL_COMMA, "").trimStart();
+        return label.toString() + "\t" + _line.replace(LABEL_COMMA, "").trimStart();
     }
 
     const handleEditorKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement> | undefined) => {
